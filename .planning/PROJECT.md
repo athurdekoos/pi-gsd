@@ -28,10 +28,14 @@ Prove that when a GSD workflow says "spawn gsd-planner," Pi can actually load th
 
 ### Active
 
-- [ ] RPC e2e: Pi can spawn `gsd-research-synthesizer` via subagent tool and `SUMMARY.md` artifact appears
-- [ ] RPC e2e: Spawned agent receives correct working directory and can read input files
-- [ ] RPC e2e: Spawned agent writes output to expected path (not orchestrator's namespace)
 - [ ] Template: Filled templates contain valid XML/markdown structure (no unclosed tags, no empty placeholders)
+
+### Validated (Phase 2)
+
+- ✓ RPC e2e: Pi invokes `gsd-research-synthesizer` via subagent tool without "Unknown agent" error (E2E-01) — Phase 2
+- ✓ RPC e2e: Spawned agent reads all 4 input research files from workspace (E2E-02) — Phase 2
+- ✓ RPC e2e: Spawned agent writes `SUMMARY.md` artifact to `.planning/research/SUMMARY.md` (E2E-03) — Phase 2
+- ✓ RPC e2e: Written `SUMMARY.md` is non-empty and contains recognizable content from input files (E2E-04) — Phase 2
 
 ### Out of Scope
 
@@ -63,10 +67,10 @@ Prove that when a GSD workflow says "spawn gsd-planner," Pi can actually load th
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Use `gsd-research-synthesizer` as RPC canary | Lightweight (reads files, writes SUMMARY.md), clear artifact, minimal state needed | — Pending |
+| Use `gsd-research-synthesizer` as RPC canary | Lightweight (reads files, writes SUMMARY.md), clear artifact, minimal state needed | ✓ Validated in Phase 2 — all 4 E2E tests pass |
 | Split into 2 test files (wiring + e2e) | Wiring tests are fast/free, e2e is slow/costly — different run profiles | ✓ Validated in Phase 1 |
 | Validate all 11 agents in wiring tests | Cheap to check, catches drift when new agents added | ✓ 105 tests, all pass |
 | Import Pi SDK frontmatter.js directly | Main entry has transitive dep issues; direct utils/frontmatter.js works and is the same function Pi uses | ✓ Phase 1 |
 
 ---
-*Last updated: 2026-03-05 after Phase 1*
+*Last updated: 2026-03-05 after Phase 2 (milestone complete)*

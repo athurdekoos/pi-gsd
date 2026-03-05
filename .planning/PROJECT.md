@@ -16,22 +16,22 @@ Prove that when a GSD workflow says "spawn gsd-planner," Pi can actually load th
 - ✓ File isolation between orchestrator/subagent paths (ISOL-01) — existing
 - ✓ Agent path parity with upstream (PRTY-11, PRTY-12) — existing
 - ✓ System prompt contains subagent mapping instructions (INTG-14) — existing
+- ✓ Wiring: All 11 agent `.md` files have valid YAML frontmatter — Phase 1
+- ✓ Wiring: Every agent frontmatter has required fields: `name`, `description`, `tools` — Phase 1
+- ✓ Wiring: Agent `name` field matches filename convention (`gsd-{slug}`) — Phase 1
+- ✓ Wiring: Agent `tools` field contains only valid Pi tool names — Phase 1
+- ✓ Wiring: Every agent in `MODEL_PROFILES` table has a corresponding `.md` file and vice versa — Phase 1
+- ✓ Wiring: Model profile resolution returns a valid model for all 11 agents × 3 profiles — Phase 1
+- ✓ Template: `planner-subagent-prompt.md` fills without broken paths after resolver runs — Phase 1
+- ✓ Template: `debug-subagent-prompt.md` fills without broken paths after resolver runs — Phase 1
+- ✓ Template: `@` file references in filled templates point to plausible `.planning/` paths — Phase 1
 
 ### Active
 
 - [ ] RPC e2e: Pi can spawn `gsd-research-synthesizer` via subagent tool and `SUMMARY.md` artifact appears
 - [ ] RPC e2e: Spawned agent receives correct working directory and can read input files
 - [ ] RPC e2e: Spawned agent writes output to expected path (not orchestrator's namespace)
-- [ ] Wiring: All 11 agent `.md` files have valid YAML frontmatter (not just 5)
-- [ ] Wiring: Every agent frontmatter has required fields: `name`, `description`, `tools`
-- [ ] Wiring: Agent `name` field matches filename convention (`gsd-{slug}`)
-- [ ] Wiring: Agent `tools` field contains only valid Pi tool names
-- [ ] Wiring: Every agent in `MODEL_PROFILES` table has a corresponding `.md` file and vice versa
-- [ ] Wiring: Model profile resolution returns a valid model for all 11 agents × 3 profiles (quality/balanced/budget)
-- [ ] Template: `planner-subagent-prompt.md` fills without broken `$GSD_HOME` or `@~/.claude` paths after resolver runs
-- [ ] Template: `debug-subagent-prompt.md` fills without broken paths after resolver runs
 - [ ] Template: Filled templates contain valid XML/markdown structure (no unclosed tags, no empty placeholders)
-- [ ] Template: `@` file references in filled templates point to paths that would exist in a `.planning/` directory
 
 ### Out of Scope
 
@@ -64,8 +64,9 @@ Prove that when a GSD workflow says "spawn gsd-planner," Pi can actually load th
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
 | Use `gsd-research-synthesizer` as RPC canary | Lightweight (reads files, writes SUMMARY.md), clear artifact, minimal state needed | — Pending |
-| Split into 2 test files (wiring + e2e) | Wiring tests are fast/free, e2e is slow/costly — different run profiles | — Pending |
-| Validate all 11 agents in wiring tests | Cheap to check, catches drift when new agents added | — Pending |
+| Split into 2 test files (wiring + e2e) | Wiring tests are fast/free, e2e is slow/costly — different run profiles | ✓ Validated in Phase 1 |
+| Validate all 11 agents in wiring tests | Cheap to check, catches drift when new agents added | ✓ 105 tests, all pass |
+| Import Pi SDK frontmatter.js directly | Main entry has transitive dep issues; direct utils/frontmatter.js works and is the same function Pi uses | ✓ Phase 1 |
 
 ---
-*Last updated: 2025-03-05 after initialization*
+*Last updated: 2026-03-05 after Phase 1*

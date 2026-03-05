@@ -1,5 +1,5 @@
 /**
- * Unified test runner — orchestrates all 16 test suites and produces a single
+ * Unified test runner — orchestrates all 17 test suites and produces a single
  * Claude AI-readable summary report via formatSummary().
  *
  * Usage:
@@ -54,6 +54,7 @@ const SUITES: SuiteDef[] = [
   { file: "compliance.test.ts", category: "Compliance" },
   // E2E (conditional)
   { file: "e2e-smoke.test.ts", category: "E2E" },
+  { file: "e2e-subagent.test.ts", category: "E2E" },
   // Runtime (real Pi process — mandatory, not gated)
   { file: "runtime-wiring.test.ts", category: "Runtime" },
   { file: "runtime-hooks.test.ts", category: "Runtime" },

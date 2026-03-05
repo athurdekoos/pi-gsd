@@ -8,38 +8,40 @@ A comprehensive test suite that validates pi-gsd's subagent creation, management
 
 Prove that when a GSD workflow says "spawn gsd-planner," Pi can actually load the agent, give it the right tools, pass it a correctly-assembled prompt, and get artifacts back — without burning tokens to find out it's broken.
 
+## Current State (v1.0 shipped)
+
+Shipped v1.0 with 856 LOC TypeScript across 4 test files (109 tests total).
+All 14 v1 requirements validated. Test suite registered in unified runner (run-all.ts).
+
 ## Requirements
 
-### Validated
+### Validated (v1.0)
 
-- ✓ Agent `.md` files exist for 5 core roles (ISOL-02) — existing
-- ✓ File isolation between orchestrator/subagent paths (ISOL-01) — existing
-- ✓ Agent path parity with upstream (PRTY-11, PRTY-12) — existing
-- ✓ System prompt contains subagent mapping instructions (INTG-14) — existing
-- ✓ Wiring: All 11 agent `.md` files have valid YAML frontmatter — Phase 1
-- ✓ Wiring: Every agent frontmatter has required fields: `name`, `description`, `tools` — Phase 1
-- ✓ Wiring: Agent `name` field matches filename convention (`gsd-{slug}`) — Phase 1
-- ✓ Wiring: Agent `tools` field contains only valid Pi tool names — Phase 1
-- ✓ Wiring: Every agent in `MODEL_PROFILES` table has a corresponding `.md` file and vice versa — Phase 1
-- ✓ Wiring: Model profile resolution returns a valid model for all 11 agents × 3 profiles — Phase 1
-- ✓ Template: `planner-subagent-prompt.md` fills without broken paths after resolver runs — Phase 1
-- ✓ Template: `debug-subagent-prompt.md` fills without broken paths after resolver runs — Phase 1
-- ✓ Template: `@` file references in filled templates point to plausible `.planning/` paths — Phase 1
+- ✓ Agent `.md` files exist for 5 core roles (ISOL-02) — pre-existing
+- ✓ File isolation between orchestrator/subagent paths (ISOL-01) — pre-existing
+- ✓ Agent path parity with upstream (PRTY-11, PRTY-12) — pre-existing
+- ✓ System prompt contains subagent mapping instructions (INTG-14) — pre-existing
+- ✓ All 11 agent `.md` files parse with Pi SDK parseFrontmatter (AGNT-01) — v1.0
+- ✓ Every agent frontmatter has required fields name, description, tools (AGNT-02) — v1.0
+- ✓ Agent name matches filename convention (AGNT-03) — v1.0
+- ✓ Agent tools field contains canonical Pi tool names (AGNT-04) — v1.0
+- ✓ Bidirectional MODEL_PROFILES↔agent coverage (MODL-01, MODL-02) — v1.0
+- ✓ Model resolution works for all 33 agent×profile combinations (MODL-03) — v1.0
+- ✓ Templates resolve paths correctly (TMPL-01, TMPL-02, TMPL-03) — v1.0
+- ✓ Pi spawns gsd-research-synthesizer without Unknown agent error (E2E-01) — v1.0
+- ✓ Agent reads input files from workspace (E2E-02) — v1.0
+- ✓ Agent writes SUMMARY.md artifact (E2E-03) — v1.0
+- ✓ SUMMARY.md contains recognizable content from inputs (E2E-04) — v1.0
 
-### Active
+### Active (v2 candidates)
 
 - [ ] Template: Filled templates contain valid XML/markdown structure (no unclosed tags, no empty placeholders)
-
-### Validated (Phase 2)
-
-- ✓ RPC e2e: Pi invokes `gsd-research-synthesizer` via subagent tool without "Unknown agent" error (E2E-01) — Phase 2
-- ✓ RPC e2e: Spawned agent reads all 4 input research files from workspace (E2E-02) — Phase 2
-- ✓ RPC e2e: Spawned agent writes `SUMMARY.md` artifact to `.planning/research/SUMMARY.md` (E2E-03) — Phase 2
-- ✓ RPC e2e: Written `SUMMARY.md` is non-empty and contains recognizable content from input files (E2E-04) — Phase 2
+- [ ] Agent tools validated against canonical list (not just present)
+- [ ] Model override via config.json model_overrides correctly supersedes profile lookup
 
 ### Out of Scope
 
-- Testing agent *behavior* (whether gsd-planner makes good plans) — that's agent quality, not wiring
+- Testing agent *behavior* (whether gsd-planner makes good plans) — agent quality, not wiring
 - Testing all 11 agents via RPC e2e — too expensive; synthesizer canary is sufficient
 - Modifying agent `.md` files or templates — this project only tests them
 - Upstream parity (already covered by PRTY-11/12)
@@ -54,6 +56,7 @@ Prove that when a GSD workflow says "spawn gsd-planner," Pi can actually load th
 - Path resolution happens via `GsdPathResolver` which rewrites `~/.claude/get-shit-done/` → local `gsd/` paths
 - Existing test harness in `tests/harness/pi-rpc.ts` supports real Pi RPC sessions for e2e tests
 - Valid Pi tool names: `Read`, `Write`, `Edit`, `Bash`, `Grep`, `Glob`, `WebSearch`, `WebFetch`, plus `mcp__*` patterns
+- v1.0 shipped: 4 test files (856 LOC), 109 tests (105 wiring + 4 E2E), registered in run-all.ts (17 suites total)
 
 ## Constraints
 
@@ -71,6 +74,9 @@ Prove that when a GSD workflow says "spawn gsd-planner," Pi can actually load th
 | Split into 2 test files (wiring + e2e) | Wiring tests are fast/free, e2e is slow/costly — different run profiles | ✓ Validated in Phase 1 |
 | Validate all 11 agents in wiring tests | Cheap to check, catches drift when new agents added | ✓ 105 tests, all pass |
 | Import Pi SDK frontmatter.js directly | Main entry has transitive dep issues; direct utils/frontmatter.js works and is the same function Pi uses | ✓ Phase 1 |
+| Single Pi session per e2e test file | Avoids 2× token cost; all tests share session state | ✓ Phase 2 |
+| Sentinel pattern for LLM output verification | XSENTINEL_ prefix + Date.now() detects real reads vs hallucination | ✓ Phase 2 |
+| 2/4 sentinel threshold for content check | Tolerates LLM synthesis variability while catching wiring failures | ✓ Phase 2 |
 
 ---
-*Last updated: 2026-03-05 after Phase 2 (milestone complete)*
+*Last updated: 2026-03-05 after v1.0 milestone*

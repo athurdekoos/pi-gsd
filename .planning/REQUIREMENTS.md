@@ -1,0 +1,85 @@
+# Requirements: Subagent Testing Suite
+
+**Defined:** 2025-03-05
+**Core Value:** Prove that when a GSD workflow says "spawn gsd-planner," Pi can actually load the agent, give it the right tools, pass it a correctly-assembled prompt, and get artifacts back.
+
+## v1 Requirements
+
+### Agent Definition Validation
+
+- [ ] **AGNT-01**: All 11 agent `.md` files in `agents/` parse successfully with Pi SDK's `parseFrontmatter()`
+- [ ] **AGNT-02**: Every agent frontmatter contains required fields `name` and `description` (non-empty strings)
+- [ ] **AGNT-03**: Every agent frontmatter `name` field matches filename convention (`gsd-{slug}.md` → `name: gsd-{slug}`)
+- [ ] **AGNT-04**: Every agent frontmatter has a `tools` field containing recognized Pi tool names
+
+### Model Profile Coverage
+
+- [ ] **MODL-01**: Every key in `MODEL_PROFILES` has a corresponding `agents/{key}.md` file on disk
+- [ ] **MODL-02**: Every `agents/gsd-*.md` file has a corresponding entry in `MODEL_PROFILES`
+- [ ] **MODL-03**: `resolveModelInternal()` returns a valid, non-empty model string for all 11 agents × 3 profiles (quality, balanced, budget)
+
+### Template Assembly
+
+- [ ] **TMPL-01**: `planner-subagent-prompt.md` contains no residual `~/.claude/get-shit-done/` paths after `GsdPathResolver.rewritePaths()` runs
+- [ ] **TMPL-02**: `debug-subagent-prompt.md` contains no residual `~/.claude/get-shit-done/` paths after `GsdPathResolver.rewritePaths()` runs
+- [ ] **TMPL-03**: `@` file references in templates point to plausible `.planning/` directory paths
+
+### E2e Subagent Spawning
+
+- [ ] **E2E-01**: Pi can invoke the `subagent` tool targeting `gsd-research-synthesizer` without "Unknown agent" error
+- [ ] **E2E-02**: Spawned agent can read input files (STACK.md, FEATURES.md, ARCHITECTURE.md, PITFALLS.md) from the workspace
+- [ ] **E2E-03**: Spawned agent writes `SUMMARY.md` artifact to `.planning/research/SUMMARY.md`
+- [ ] **E2E-04**: Written `SUMMARY.md` is non-empty and contains recognizable content from input files
+
+## v2 Requirements
+
+### Agent Definition Validation
+
+- **AGNT-05**: Agent `tools` field validated against canonical Pi tool name list (not just "present")
+- **AGNT-06**: Optional frontmatter fields (`color`, `model`) validated when present
+
+### Model Profile Coverage
+
+- **MODL-04**: Model override via `config.json` `model_overrides` correctly supersedes profile lookup
+
+### Template Assembly
+
+- **TMPL-04**: Template XML/markdown structure validated (no unclosed tags, no empty placeholders)
+
+## Out of Scope
+
+| Feature | Reason |
+|---------|--------|
+| Testing agent behavior quality (e.g., does planner make good plans) | Nondeterministic LLM output, not a wiring concern |
+| E2e testing all 11 agents | 11× cost/time; one canary + wiring tests catches breakage |
+| Testing Pi SDK internals (parseFrontmatter correctness) | Not our code; we test our files against its contract |
+| Modifying agent `.md` files or templates | This project only tests them |
+| Upstream parity testing | Already covered by PRTY-11/12 in parity-agents.test.ts |
+
+## Traceability
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| AGNT-01 | Phase 1 | Pending |
+| AGNT-02 | Phase 1 | Pending |
+| AGNT-03 | Phase 1 | Pending |
+| AGNT-04 | Phase 1 | Pending |
+| MODL-01 | Phase 1 | Pending |
+| MODL-02 | Phase 1 | Pending |
+| MODL-03 | Phase 1 | Pending |
+| TMPL-01 | Phase 1 | Pending |
+| TMPL-02 | Phase 1 | Pending |
+| TMPL-03 | Phase 1 | Pending |
+| E2E-01 | Phase 2 | Pending |
+| E2E-02 | Phase 2 | Pending |
+| E2E-03 | Phase 2 | Pending |
+| E2E-04 | Phase 2 | Pending |
+
+**Coverage:**
+- v1 requirements: 14 total
+- Mapped to phases: 14
+- Unmapped: 0 ✓
+
+---
+*Requirements defined: 2025-03-05*
+*Last updated: 2025-03-05 after initial definition*

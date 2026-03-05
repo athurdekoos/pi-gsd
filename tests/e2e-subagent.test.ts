@@ -204,6 +204,85 @@ async function runTests() {
         );
       },
     );
+
+    // -----------------------------------------------------------------
+    // E2E-03: Spawned agent writes SUMMARY.md artifact
+    // -----------------------------------------------------------------
+    await testAsync(
+      "E2E-03: spawned agent writes SUMMARY.md artifact to .planning/research/SUMMARY.md",
+      async () => {
+        assert.ok(
+          ws.exists(".planning/research/SUMMARY.md"),
+          formatFailure({
+            file: "agents/gsd-research-synthesizer.md",
+            expected: "SUMMARY.md exists at .planning/research/SUMMARY.md after agent completes",
+            actual: "File not found — agent may not have written output",
+            why: "E2E-03 requires the synthesizer agent to write its artifact to the expected path",
+          }),
+        );
+      },
+    );
+
+    // -----------------------------------------------------------------
+    // E2E-04: SUMMARY.md contains recognizable content from input files
+    // -----------------------------------------------------------------
+    await testAsync(
+      "E2E-04: SUMMARY.md contains recognizable content from input files",
+      async () => {
+        // Gracefully handle missing file (if E2E-03 failed)
+        let summary: string;
+        try {
+          summary = ws.readFile(".planning/research/SUMMARY.md");
+        } catch {
+          assert.fail(
+            formatFailure({
+              file: "tests/e2e-subagent.test.ts",
+              expected: "SUMMARY.md readable for content verification",
+              actual: "Cannot read .planning/research/SUMMARY.md — file missing or unreadable",
+              why: "E2E-04 depends on SUMMARY.md existing (E2E-03 likely failed)",
+            }),
+          );
+          return; // unreachable, but satisfies TypeScript
+        }
+
+        // Length check — agent should produce substantial synthesis
+        assert.ok(
+          summary.length >= 200,
+          formatFailure({
+            file: "tests/e2e-subagent.test.ts",
+            expected: "SUMMARY.md ≥200 characters (non-trivial synthesis)",
+            actual: `${summary.length} characters`,
+            why: "E2E-04 verifies the agent produced substantial output, not an empty or stub file",
+          }),
+        );
+
+        // Heading check — should have markdown structure
+        assert.ok(
+          summary.includes("#"),
+          formatFailure({
+            file: "tests/e2e-subagent.test.ts",
+            expected: "SUMMARY.md contains at least one markdown heading (#)",
+            actual: "No markdown headings found",
+            why: "E2E-04 verifies the agent produced structured markdown output",
+          }),
+        );
+
+        // Sentinel check — at least 2 of 4 sentinel strings preserved
+        const sentinelHits = Object.entries(SENTINELS).filter(
+          ([_, sentinel]) => summary.includes(sentinel),
+        );
+        assert.ok(
+          sentinelHits.length >= 2,
+          formatFailure({
+            file: "tests/e2e-subagent.test.ts",
+            expected: "≥2 of 4 sentinel strings present in SUMMARY.md",
+            actual: `Found ${sentinelHits.length}/4: ${sentinelHits.map(([k]) => k).join(", ") || "none"}`,
+            why: "E2E-04 verifies the agent actually read and synthesized input content, not hallucinated",
+            evidence: summary.substring(0, 300),
+          }),
+        );
+      },
+    );
   } finally {
     session.kill();
     await session.waitForExit();

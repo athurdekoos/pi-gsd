@@ -1,0 +1,17 @@
+{
+  "name": "pi-gsd",
+  "version": "0.1.0",
+  "description": "GSD (Get Shit Done) extension for Pi coding agent",
+  "pi": {
+    "extensions": [
+      "extensions/gsd"
+    ],
+    "agents": [
+      "agents"
+    ]
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}

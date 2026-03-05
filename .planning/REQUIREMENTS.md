@@ -28,8 +28,8 @@
 
 - [x] **E2E-01**: Pi can invoke the `subagent` tool targeting `gsd-research-synthesizer` without "Unknown agent" error
 - [x] **E2E-02**: Spawned agent can read input files (STACK.md, FEATURES.md, ARCHITECTURE.md, PITFALLS.md) from the workspace
-- [ ] **E2E-03**: Spawned agent writes `SUMMARY.md` artifact to `.planning/research/SUMMARY.md`
-- [ ] **E2E-04**: Written `SUMMARY.md` is non-empty and contains recognizable content from input files
+- [x] **E2E-03**: Spawned agent writes `SUMMARY.md` artifact to `.planning/research/SUMMARY.md`
+- [x] **E2E-04**: Written `SUMMARY.md` is non-empty and contains recognizable content from input files
 
 ## v2 Requirements
 
@@ -72,8 +72,8 @@
 | TMPL-03 | Phase 1 | Pending |
 | E2E-01 | Phase 2 | Complete |
 | E2E-02 | Phase 2 | Complete |
-| E2E-03 | Phase 2 | Pending |
-| E2E-04 | Phase 2 | Pending |
+| E2E-03 | Phase 2 | Complete |
+| E2E-04 | Phase 2 | Complete |
 
 **Coverage:**
 - v1 requirements: 14 total

@@ -46,10 +46,18 @@ const SUITES: SuiteDef[] = [
   // Parity
   { file: "parity-files.test.ts", category: "Parity" },
   { file: "parity-agents.test.ts", category: "Parity" },
+  // Wiring
+  { file: "wiring-agents.test.ts", category: "Wiring" },
+  { file: "wiring-models.test.ts", category: "Wiring" },
+  { file: "wiring-templates.test.ts", category: "Wiring" },
   // Compliance
   { file: "compliance.test.ts", category: "Compliance" },
   // E2E (conditional)
   { file: "e2e-smoke.test.ts", category: "E2E" },
+  // Runtime (real Pi process — mandatory, not gated)
+  { file: "runtime-wiring.test.ts", category: "Runtime" },
+  { file: "runtime-hooks.test.ts", category: "Runtime" },
+  { file: "runtime-isolation.test.ts", category: "Runtime" },
   // Legacy
   { file: "path-resolver.test.ts", category: "Legacy" },
   { file: "command-loading.test.ts", category: "Legacy" },

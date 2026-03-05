@@ -5,204 +5,232 @@
 ## Directory Layout
 
 ```
-pi-gtd/
-├── agents/                     # LLM agent role definitions (markdown)
-│   ├── gsd-codebase-mapper.md  # Codebase analysis agent
-│   ├── gsd-debugger.md         # Systematic debugging agent
-│   ├── gsd-executor.md         # Plan execution agent
-│   ├── gsd-integration-checker.md  # Cross-phase integration checker
-│   ├── gsd-phase-researcher.md # Phase-level research agent
-│   ├── gsd-plan-checker.md     # Plan quality checker agent
-│   ├── gsd-planner.md          # Plan creation agent
-│   ├── gsd-project-researcher.md   # Project-level research agent
-│   ├── gsd-research-synthesizer.md # Research synthesis agent
-│   ├── gsd-roadmapper.md       # Roadmap creation agent
-│   └── gsd-verifier.md         # Verification agent
-├── commands/
-│   └── gsd/                    # Slash command definitions (markdown with frontmatter)
-│       ├── plan-phase.md       # /gsd:plan-phase command
-│       ├── execute-phase.md    # /gsd:execute-phase command
-│       ├── quick.md            # /gsd:quick command
-│       ├── help.md             # /gsd:help command
-│       └── ... (30 total)      # All /gsd:* commands
-├── extensions/
-│   └── gsd/                    # Pi extension (TypeScript)
-│       ├── index.ts            # Extension entry point (events + command registration)
-│       ├── commands.ts         # Command discovery and handler factory
-│       └── path-resolver.ts    # Path rewriting and content transformation
-├── gsd/
-│   ├── bin/
-│   │   ├── gsd-tools.cjs      # CLI router (main entry point for all deterministic ops)
-│   │   └── lib/
-│   │       ├── core.cjs        # Shared utilities, model profiles, git helpers
-│   │       ├── config.cjs      # Config CRUD (ensure, set, get)
-│   │       ├── state.cjs       # STATE.md operations + frontmatter sync
-│   │       ├── phase.cjs       # Phase CRUD, query, lifecycle operations
-│   │       ├── roadmap.cjs     # Roadmap parsing and update operations
-│   │       ├── milestone.cjs   # Milestone archival and requirements marking
-│   │       ├── verify.cjs      # Verification suite, consistency, health validation
-│   │       ├── frontmatter.cjs # YAML frontmatter parsing and CRUD
-│   │       ├── template.cjs    # Template selection and fill operations
-│   │       ├── commands.cjs    # Standalone utility commands (slug, timestamp, todos, commit, progress)
-│   │       └── init.cjs        # Compound init commands for workflow bootstrapping
-│   ├── references/             # Reference documentation for agents
-│   │   ├── checkpoints.md      # Checkpoint protocol details
-│   │   ├── git-integration.md  # Git workflow patterns
-│   │   ├── model-profiles.md   # Model selection guide
-│   │   ├── questioning.md      # User questioning patterns
-│   │   ├── ui-brand.md         # UI/branding guidelines
-│   │   └── ... (12 total)
-│   ├── templates/              # Document templates
-│   │   ├── codebase/           # Codebase map templates (7 files)
-│   │   ├── research-project/   # Research output templates
-│   │   ├── config.json         # Default project config template
-│   │   ├── project.md          # PROJECT.md template
-│   │   ├── roadmap.md          # ROADMAP.md template
-│   │   ├── state.md            # STATE.md template
-│   │   ├── summary.md          # SUMMARY.md template (+ minimal, standard, complex variants)
-│   │   └── ... (20+ total)
-│   └── workflows/              # Workflow orchestration definitions (markdown)
-│       ├── new-project.md      # Project initialization workflow
-│       ├── plan-phase.md       # Phase planning workflow
-│       ├── execute-phase.md    # Phase execution workflow
-│       ├── execute-plan.md     # Single plan execution workflow
-│       ├── quick.md            # Quick task workflow
-│       ├── map-codebase.md     # Codebase mapping workflow
-│       ├── progress.md         # Progress checking workflow
-│       └── ... (30+ total)
-├── tests/
-│   ├── harness/                # Test infrastructure
-│   │   ├── mock-api.ts         # MockExtensionAPI for testing
-│   │   ├── mock-context.ts     # Mock ExtensionContext
-│   │   ├── diagnostic.ts       # Test failure formatting
-│   │   └── lifecycle.ts        # Environment save/restore, temp dirs
-│   ├── helpers/
-│   │   └── upstream-resolver.ts # Upstream path resolution for parity tests
-│   ├── run-all.ts              # Test runner (discovers + executes all *.test.ts)
-│   ├── compliance.test.ts      # Pi SDK contract validation
-│   ├── e2e-smoke.test.ts       # End-to-end smoke tests (--e2e flag)
-│   ├── parity-agents.test.ts   # Agent file parity with upstream
-│   ├── parity-files.test.ts    # File parity with upstream
-│   └── ... (15 test files total)
-├── package.json                # Package manifest with pi extension config
-└── tsconfig.json               # TypeScript configuration
+pi-gsd/
+├── extensions/gsd/        # Pi extension entry point (TypeScript, 3 files)
+├── commands/gsd/          # /gsd:* slash command definitions (30+ .md files)
+├── gsd/                   # GSD runtime resources
+│   ├── bin/               # CLI tooling
+│   │   ├── gsd-tools.cjs  # CLI router (592 lines)
+│   │   └── lib/           # 11 library modules (~5400 lines total)
+│   ├── workflows/         # Multi-step orchestration scripts (30+ .md files)
+│   ├── templates/         # Document templates
+│   │   ├── codebase/      # Codebase map templates (7 files)
+│   │   └── research-project/ # Research output templates
+│   └── references/        # Reference documentation (13 files)
+├── agents/                # Subagent definitions (11 .md files)
+├── tests/                 # Test suites
+│   ├── harness/           # Test infrastructure (4 files)
+│   └── helpers/           # Test helpers (1 file)
+├── docs/                  # Project documentation
+│   ├── architecture/      # Architecture docs (4 files)
+│   ├── flows/             # Flow diagrams (6 files)
+│   ├── modules/           # Module docs (6 files)
+│   ├── ops/               # Operations docs (4 files)
+│   └── adr/               # Architecture Decision Records (12 ADRs)
+├── .planning/             # Project state (managed by GSD, gitignored partially)
+│   └── codebase/          # Codebase map output
+├── package.json           # Project manifest with Pi extension config
+└── tsconfig.json          # TypeScript configuration
 ```
 
 ## Directory Purposes
 
-**`agents/`:**
-- Purpose: Define LLM agent roles as markdown files with YAML frontmatter
-- Contains: 11 agent definitions — each specifies role, tools, philosophy, execution steps
-- Key files: `gsd-planner.md` (plan creation), `gsd-executor.md` (plan execution), `gsd-codebase-mapper.md` (codebase analysis)
+**extensions/gsd/**
+- Purpose: Pi Extension SDK integration layer
+- Contains: 3 TypeScript files (~400 lines total)
+- Key files:
+  - `index.ts` - Extension factory (default export), lifecycle event handlers
+  - `commands.ts` - Command discovery, frontmatter parsing, handler registration
+  - `path-resolver.ts` - `GsdPathResolver` class: 4 rewrite rules, execution context transform, argument injection
 
-**`commands/gsd/`:**
-- Purpose: Define user-facing `/gsd:*` slash commands
-- Contains: 30 markdown files, each with frontmatter (name, description) and body (workflow invocation prompt)
-- Key files: `plan-phase.md`, `execute-phase.md`, `quick.md`, `help.md`, `new-project.md`
+**commands/gsd/**
+- Purpose: User-facing `/gsd:*` slash command definitions
+- Contains: 30+ markdown files with YAML frontmatter
+- Key files:
+  - `new-project.md` - Initialize a new GSD project
+  - `plan-phase.md` - Plan a phase's implementation
+  - `execute-phase.md` - Execute a planned phase
+  - `map-codebase.md` - Map existing codebase
+  - `help.md` - GSD help overview (also bare `/gsd`)
+  - `quick.md` - Quick one-off tasks
+  - `debug.md` - Debug session workflow
 
-**`extensions/gsd/`:**
-- Purpose: Pi extension entry point — bridges pi runtime with GSD system
-- Contains: 3 TypeScript files (index, commands, path-resolver)
-- Key files: `index.ts` (factory function exported as default)
+**gsd/bin/**
+- Purpose: CLI tooling for deterministic operations
+- Contains: `gsd-tools.cjs` (router) + `lib/` directory with 11 modules
+- Key files:
+  - `gsd-tools.cjs` - CLI entry point and command router (592 lines)
+  - `lib/core.cjs` - Shared utilities, model profiles, path/config helpers (483 lines)
+  - `lib/state.cjs` - STATE.md operations, progression engine (732 lines)
+  - `lib/phase.cjs` - Phase CRUD, lifecycle, renumbering (901 lines)
+  - `lib/init.cjs` - Compound init commands for workflow bootstrapping (710 lines)
+  - `lib/verify.cjs` - Verification suite and health validation (773 lines)
+  - `lib/frontmatter.cjs` - Custom YAML parser and CRUD (299 lines)
+  - `lib/commands.cjs` - Standalone utility commands (548 lines)
+  - `lib/roadmap.cjs` - Roadmap parsing and update (298 lines)
+  - `lib/milestone.cjs` - Milestone lifecycle operations (267 lines)
+  - `lib/template.cjs` - Template selection and fill (222 lines)
+  - `lib/config.cjs` - Planning config CRUD (162 lines)
 
-**`gsd/bin/`:**
-- Purpose: Deterministic CLI operations callable from within LLM agent sessions
-- Contains: Main router (`gsd-tools.cjs`) + 11 library modules in `lib/`
-- Key files: `gsd-tools.cjs` (80+ subcommands), `lib/core.cjs` (shared utilities)
+**gsd/workflows/**
+- Purpose: Multi-step workflow orchestration read by the LLM
+- Contains: 30+ markdown workflow files (~11K total lines)
+- Key files:
+  - `new-project.md` - Full project initialization (1116 lines)
+  - `complete-milestone.md` - Milestone completion ceremony (763 lines)
+  - `plan-phase.md` - Phase planning orchestration (541 lines)
+  - `execute-phase.md` - Phase execution with wave parallelism (449 lines)
+  - `execute-plan.md` - Single plan execution (448 lines)
+  - `verify-work.md` - Post-execution verification (569 lines)
+  - `map-codebase.md` - Codebase mapping orchestration (315 lines)
+  - `quick.md` - Quick task workflow (453 lines)
 
-**`gsd/workflows/`:**
-- Purpose: Step-by-step orchestration logic the LLM follows when executing commands
-- Contains: 30+ workflow files referenced by command definitions
-- Key files: `new-project.md`, `plan-phase.md`, `execute-phase.md`, `quick.md`
+**gsd/templates/**
+- Purpose: Document templates for `.planning/` file generation
+- Contains: Template markdown files with placeholder variables
+- Key files:
+  - `state.md` - STATE.md template
+  - `project.md` - PROJECT.md template
+  - `roadmap.md` - ROADMAP.md template
+  - `requirements.md` - REQUIREMENTS.md template
+  - `summary.md`, `summary-standard.md`, `summary-complex.md`, `summary-minimal.md` - Summary templates by complexity
+  - `codebase/` - 7 codebase map templates (stack, architecture, structure, conventions, testing, integrations, concerns)
+  - `research-project/` - 5 research output templates
 
-**`gsd/templates/`:**
-- Purpose: Document templates for consistent artifact generation
-- Contains: Templates for all `.planning/` artifacts
-- Key files: `summary.md`, `project.md`, `roadmap.md`, `state.md`, `config.json`
+**gsd/references/**
+- Purpose: Reference documentation and guidance for workflows/agents
+- Contains: 13 markdown files (~2900 total lines)
+- Key files:
+  - `checkpoints.md` - Checkpoint protocol reference (776 lines)
+  - `verification-patterns.md` - Verification pattern library (612 lines)
+  - `tdd.md` - TDD guidance (263 lines)
+  - `git-integration.md` - Git workflow reference (248 lines)
+  - `model-profiles.md` - Model profile documentation (92 lines)
 
-**`gsd/references/`:**
-- Purpose: Reference documentation loaded by agents when needed
-- Contains: Detailed guides for specific concerns
-- Key files: `checkpoints.md`, `git-integration.md`, `model-profiles.md`
+**agents/**
+- Purpose: Specialized LLM agent definitions spawned as subagents
+- Contains: 11 markdown agent files (~7500 total lines)
+- Key files:
+  - `gsd-planner.md` - Phase planning agent (1295 lines)
+  - `gsd-debugger.md` - Debug session agent (1246 lines)
+  - `gsd-executor.md` - Plan execution agent (479 lines)
+  - `gsd-codebase-mapper.md` - Codebase mapping agent (764 lines)
+  - `gsd-verifier.md` - Post-execution verification agent (573 lines)
+  - `gsd-roadmapper.md` - Roadmap generation agent (642 lines)
 
-**`tests/`:**
-- Purpose: Compliance, parity, integration, and e2e tests
-- Contains: 15 test files + harness infrastructure
-- Key files: `run-all.ts` (runner), `compliance.test.ts`, `e2e-smoke.test.ts`
+**tests/**
+- Purpose: Test suites for the extension layer
+- Contains: 16 test files + harness + helpers (~4400 total lines)
+- Key files:
+  - `run-all.ts` - Unified test runner (187 lines)
+  - `harness/mock-api.ts` - MockExtensionAPI (Pi API simulator)
+  - `harness/mock-context.ts` - Mock execution context
+  - `harness/lifecycle.ts` - Environment isolation helpers
+  - `harness/diagnostic.ts` - Structured test output formatters
+
+**docs/**
+- Purpose: Comprehensive project documentation
+- Contains: 30+ files across 5 subdirectories
+- Key files:
+  - `architecture/overview.md` - 6-layer architecture explanation
+  - `architecture/components.md` - Component dependency graph
+  - `architecture/data-flow.md` - State management and data flow
+  - `ops/testing.md` - Test strategy and patterns
+  - `adr/` - 12 Architecture Decision Records
 
 ## Key File Locations
 
 **Entry Points:**
-- `extensions/gsd/index.ts`: Extension factory — `export default function(pi: ExtensionAPI)`
-- `gsd/bin/gsd-tools.cjs`: CLI router — `node gsd/bin/gsd-tools.cjs <command> [args]`
-- `tests/run-all.ts`: Test runner entry
+- `extensions/gsd/index.ts` - Pi extension entry point (loaded at startup)
+- `gsd/bin/gsd-tools.cjs` - CLI tool entry point (called by workflows/agents)
 
 **Configuration:**
-- `package.json`: Package manifest with `"pi"` field declaring extension and agent paths
-- `tsconfig.json`: TypeScript config (`ES2022`, `ESNext`, `bundler` resolution)
-- `gsd/templates/config.json`: Default `.planning/config.json` template
+- `package.json` - Extension manifest with `pi.extensions` and `pi.agents`
+- `tsconfig.json` - TypeScript compiler options (ES2022, strict)
+- `gsd/templates/config.json` - Default `.planning/config.json` template
 
 **Core Logic:**
-- `gsd/bin/lib/core.cjs`: Model profiles, config loading, git utilities, phase search
-- `gsd/bin/lib/init.cjs`: Compound init commands for all workflow types
-- `gsd/bin/lib/state.cjs`: STATE.md read/write with frontmatter sync
-- `extensions/gsd/path-resolver.ts`: 3-stage content transformation pipeline
+- `extensions/gsd/path-resolver.ts` - Path resolution pipeline (most critical single component)
+- `extensions/gsd/commands.ts` - Command discovery and registration
+- `gsd/bin/lib/core.cjs` - Shared utilities, model profiles, config loading
+- `gsd/bin/lib/state.cjs` - STATE.md dual-representation management
+- `gsd/bin/lib/phase.cjs` - Phase lifecycle and renumbering logic
 
 **Testing:**
-- `tests/harness/mock-api.ts`: `MockExtensionAPI` class
-- `tests/harness/lifecycle.ts`: `saveEnv()`, `restoreEnv()`, `withTempDir()`
+- `tests/run-all.ts` - Test orchestrator
+- `tests/harness/` - Test infrastructure (mock API, mock context, lifecycle, diagnostics)
+
+**Documentation:**
+- `docs/README.md` - Documentation index
+- `docs/architecture/overview.md` - Architecture overview
+- `docs/adr/index.md` - ADR index
 
 ## Naming Conventions
 
 **Files:**
-- Agent definitions: `gsd-{role}.md` (kebab-case, e.g., `gsd-plan-checker.md`)
-- Commands: `{verb-noun}.md` (kebab-case matching the slash command, e.g., `plan-phase.md` → `/gsd:plan-phase`)
-- CLI libraries: `{domain}.cjs` (lowercase, e.g., `state.cjs`, `phase.cjs`)
-- Tests: `{scope}-{domain}.test.ts` (e.g., `compliance.test.ts`, `intg-commands.test.ts`)
-- Templates: `{artifact-type}.md` (e.g., `summary.md`, `roadmap.md`)
+- kebab-case.md for commands, workflows, templates, references: `plan-phase.md`, `execute-plan.md`
+- kebab-case.ts for extension source: `path-resolver.ts`, `commands.ts`
+- kebab-case.cjs for CLI modules: `gsd-tools.cjs`, `core.cjs`
+- kebab-case.test.ts for tests with category prefix: `unit-path-rewrite.test.ts`, `intg-commands.test.ts`
+- UPPERCASE.md for important state files: `STATE.md`, `ROADMAP.md`, `PROJECT.md`
 
 **Directories:**
-- Agent/command dirs use singular names: `agents/`, `commands/`
-- Workflow/template dirs match their domain: `workflows/`, `templates/`, `references/`
+- kebab-case for all directories: `commands/gsd/`, `gsd/bin/lib/`
+- Number-prefixed for phases: `01-foundation/`, `02-core/`
+
+**Special Patterns:**
+- `gsd-` prefix for agent files: `gsd-planner.md`, `gsd-executor.md`
+- `*-PLAN.md`, `*-SUMMARY.md` for phase artifacts: `01-01-PLAN.md`, `01-01-SUMMARY.md`
+- Category prefix for test files: `unit-*`, `intg-*`, `parity-*`, `e2e-*`
 
 ## Where to Add New Code
 
-**New GSD Command:**
-1. Create `commands/gsd/{command-name}.md` with frontmatter (name, description)
-2. Create corresponding `gsd/workflows/{command-name}.md` with orchestration logic
-3. Command auto-discovered by `extensions/gsd/commands.ts` on next load/reload
+**New Slash Command:**
+- Definition: `commands/gsd/{command-name}.md` (with YAML frontmatter)
+- Workflow: `gsd/workflows/{command-name}.md` (if multi-step)
+- Tests: Add parity test entry if tracking upstream sync
+- Registration: Automatic (command discovery scans `commands/gsd/*.md`)
 
 **New Agent:**
-1. Create `agents/gsd-{agent-name}.md` with frontmatter (name, description, tools, color)
-2. Reference from workflow files via `Task(subagent_type="gsd-{agent-name}")`
-3. Add model mapping in `gsd/bin/lib/core.cjs:MODEL_PROFILES`
+- Definition: `agents/gsd-{agent-name}.md` (with YAML frontmatter)
+- Model profile: Add entry to `MODEL_PROFILES` table in `gsd/bin/lib/core.cjs`
+- Reference: Update `docs/modules/agents.md`
 
-**New CLI Subcommand:**
-1. Add handler function in appropriate `gsd/bin/lib/{domain}.cjs`
-2. Add case in `gsd/bin/gsd-tools.cjs:main()` switch statement
-3. Export from module
-
-**New Test:**
-1. Create `tests/{scope}-{domain}.test.ts`
-2. Follow existing pattern: `testSync()`/`testAsync()` with `node:assert`
-3. Auto-discovered by `tests/run-all.ts` glob pattern
+**New CLI Command:**
+- Library module: `gsd/bin/lib/{module}.cjs` (add function)
+- Router entry: Add `case` to switch in `gsd/bin/gsd-tools.cjs`
+- Export: Add to `module.exports` in the library module
 
 **New Template:**
-1. Create `gsd/templates/{artifact-type}.md`
-2. Reference from agent definitions or workflow files
+- Template file: `gsd/templates/{name}.md`
+- If codebase template: `gsd/templates/codebase/{name}.md`
+- Usage: Referenced by agents/workflows that generate documents
+
+**New Test:**
+- Test file: `tests/{category}-{name}.test.ts`
+- Registration: Add to `SUITES` array in `tests/run-all.ts`
+- Harness: Import from `tests/harness/` for mocks and utilities
+
+**New Documentation:**
+- Architecture: `docs/architecture/{topic}.md`
+- ADR: `docs/adr/{NNN}-{title}.md` + update `docs/adr/index.md`
+- Module: `docs/modules/{module}.md`
+- Operations: `docs/ops/{topic}.md`
+- Flow: `docs/flows/{flow}.md`
 
 ## Special Directories
 
-**`.planning/` (generated per-project):**
-- Purpose: Contains all project state and artifacts for a GSD-managed project
-- Generated: Yes — created by `/gsd:new-project` workflow
-- Committed: Configurable via `.planning/config.json` `commit_docs` setting
+**.planning/**
+- Purpose: Project state directory managed by GSD workflows
+- Generated: Yes (created by `/gsd:new-project`, `/gsd:map-codebase`)
+- Committed: Partially (codebase map committed, other state varies per config)
 
-**`node_modules/` (not committed):**
-- Purpose: Contains `tsx` and `typescript` devDependencies
-- Generated: Yes — via `npm install`
-- Committed: No
+**gsd/bin/lib/**
+- Purpose: CLI library modules (11 files) — internal to gsd-tools
+- Generated: No (hand-written CommonJS)
+- Committed: Yes (source of truth for CLI operations)
 
 ---
 
 *Structure analysis: 2026-03-05*
+*Update when directory structure changes*

@@ -5,125 +5,162 @@
 ## Naming Patterns
 
 **Files:**
-- TypeScript extension: `camelCase.ts` (e.g., `path-resolver.ts` is an exception — uses kebab-case)
-- CommonJS modules: `lowercase.cjs` (e.g., `core.cjs`, `state.cjs`, `frontmatter.cjs`)
-- Markdown: `kebab-case.md` for commands/workflows, `UPPERCASE.md` for generated artifacts (e.g., `STATE.md`, `ROADMAP.md`)
-- Tests: `{scope}-{domain}.test.ts` (e.g., `compliance.test.ts`, `intg-commands.test.ts`)
+- kebab-case for all source files: `path-resolver.ts`, `gsd-tools.cjs`, `mock-context.ts`
+- Category prefix for test files: `unit-path-rewrite.test.ts`, `intg-commands.test.ts`, `parity-files.test.ts`
+- UPPERCASE.md for state/document files: `STATE.md`, `PLAN.md`, `SUMMARY.md`
+- `.cjs` extension for CommonJS modules; `.ts` for TypeScript
 
 **Functions:**
-- CLI command handlers: `cmd{Domain}{Action}(cwd, args, raw)` (e.g., `cmdStateUpdate()`, `cmdPhaseAdd()`, `cmdFrontmatterGet()`)
-- Internal helpers: `camelCase` (e.g., `loadConfig()`, `findPhaseInternal()`, `resolveModelInternal()`)
-- External-facing functions: descriptive verbs (e.g., `registerGsdCommands()`, `buildGsdSystemPromptAddendum()`)
+- camelCase for all functions: `rewritePaths()`, `registerGsdCommands()`, `cmdStateLoad()`
+- `cmd` prefix for CLI command handlers in lib modules: `cmdStateLoad()`, `cmdPhaseAdd()`, `cmdVerifySummary()`
+- No special prefix for async functions
 
 **Variables:**
-- Constants: `UPPER_SNAKE_CASE` (e.g., `MODEL_PROFILES`, `VALID_PI_EVENTS`, `FRONTMATTER_SCHEMAS`)
-- Local variables: `camelCase` (e.g., `phaseDir`, `configPath`, `normalizedPhase`)
+- camelCase for variables: `gsdHome`, `commandSlug`, `phaseInfo`
+- UPPER_SNAKE_CASE for constants: `MODEL_PROFILES`, `VALID_PI_EVENTS`, `SUITES`
 
 **Types:**
-- Interfaces/types imported from Pi SDK: `ExtensionAPI`, `ExtensionContext`
-- Internal types: `CommandMeta` in `commands.ts`
-- Classes: `PascalCase` (e.g., `GsdPathResolver`, `MockExtensionAPI`)
+- PascalCase for interfaces and types: `CommandMeta`, `MockUI`, `SuiteResult`, `EnvSnapshot`
+- No `I` prefix for interfaces
+- Descriptive suffixes: `*Result`, `*Opts`, `*Meta`, `*Snapshot`
 
 ## Code Style
 
 **Formatting:**
-- No auto-formatter configured (no `.prettierrc`, no `.eslintrc`)
-- Consistent 2-space indentation throughout
-- Single quotes in CommonJS (`gsd/bin/lib/*.cjs`), double quotes in TypeScript (`extensions/gsd/`)
-- Semicolons always used
+- 2 space indentation (TypeScript and CJS)
+- Single quotes for strings in CJS (`require('fs')`)
+- Double quotes for strings in TypeScript imports (`import * as fs from "node:fs"`)
+- Semicolons required
+- No Prettier or auto-formatter configured
 
 **Linting:**
-- No linter configured
-- TypeScript `strict: true` in `tsconfig.json` provides type checking
+- No ESLint or linter configured
+- TypeScript strict mode enforced via `tsconfig.json` (`"strict": true`)
+- Style enforced by convention and code review
 
 ## Import Organization
 
-**Order (TypeScript — `extensions/gsd/`):**
-1. Node.js built-ins (`import * as fs from "node:fs"`, `import * as path from "node:path"`)
-2. External packages (`import type { ExtensionAPI } from "@mariozechner/pi-coding-agent"`)
-3. Local imports (`import { GsdPathResolver } from "./path-resolver.js"`)
+**TypeScript (Extension Layer):**
+1. Node.js built-ins with `node:` prefix: `import * as fs from "node:fs"`
+2. External packages: `import type { ExtensionAPI } from "@mariozechner/pi-coding-agent"`
+3. Local imports with `.js` extension: `import { GsdPathResolver } from "./path-resolver.js"`
+4. Type-only imports use `import type`: `import type { ExtensionAPI }`
 
-**Order (CommonJS — `gsd/bin/lib/`):**
-1. Node.js built-ins (`const fs = require('fs')`, `const path = require('path')`)
-2. Local imports (`const { loadConfig, output, error } = require('./core.cjs')`)
+**CommonJS (CLI Layer):**
+1. Node.js built-ins: `const fs = require('fs')`
+2. Local modules: `const { output, error } = require('./core.cjs')`
+- No external dependencies — only Node.js built-ins and local modules
+- Destructured imports preferred: `const { execSync } = require('child_process')`
 
 **Path Aliases:**
-- None configured — all imports use relative paths
-- Extension files use `.js` extension in imports (TypeScript convention for ESM-compatible output)
+- None used — all imports are relative paths
 
 ## Error Handling
 
-**Patterns:**
-- CLI tools: Call `error(message)` from `core.cjs` which writes to stderr and `process.exit(1)`
-- Extension load: Graceful degradation — check for required files, write to stderr, `return` (don't crash pi)
-- File reads: `safeReadFile()` returns `null` on failure (never throws)
-- Git operations: `execGit()` returns `{ exitCode, stdout, stderr }` object (never throws)
-- Config loading: `loadConfig()` returns defaults object on any failure (never throws)
-- Init commands: Return `null`/`false` for missing optional resources in JSON output
+**Extension Layer Patterns:**
+- `try/catch` around file reads with `ctx.ui.notify()` for user-facing errors
+- Graceful degradation: Check preconditions (gsd/ exists, gsd-tools.cjs exists) before registering; silently return on failure
+- No error classes — use plain `Error` or string messages
 
-**Anti-patterns to avoid:**
-- Never throw exceptions in CLI command handlers — use `error()` for fatal, return status objects for non-fatal
-- Never let extension event handlers crash — pi continues but extension behavior is unpredictable
+**CLI Layer Patterns:**
+- `error(message)` function: writes to stderr and calls `process.exit(1)` — fail-fast, no recovery
+- `safeReadFile(path)` returns `null` on failure instead of throwing
+- Guard clauses at function entry: validate required parameters, call `error()` if missing
+- No try/catch in most command handlers — let exceptions propagate to crash the process
+
+**Error Types:**
+- Throw on: missing required parameters, file not found, invalid state
+- Return null on: optional file reads, best-effort lookups
+- Never: retry logic, partial results, error codes
 
 ## Logging
 
-**Framework:** None — raw `process.stderr.write()` and `process.stdout.write()`
+**Framework:** None — raw stdio
 
 **Patterns:**
-- Fatal errors: `process.stderr.write('Error: ' + message)` via `core.cjs:error()`
-- Extension warnings: `process.stderr.write('[pi-gsd] ...')` in `extensions/gsd/index.ts`
-- CLI output: JSON to stdout via `core.cjs:output()` (with `--raw` flag for plain text)
-- Large output: Write to tmpfile, output `@file:/path` prefix (auto-detected by callers)
+- Extension: `process.stderr.write("[pi-gsd] ...")` for initialization warnings
+- CLI: `process.stdout.write(JSON.stringify(result))` for success output
+- CLI: `process.stderr.write("Error: " + message)` via `error()` function
+- Tests: `console.log("  ✓ " + name)` / `console.log("  ✗ " + name)` for structured output
+- No `console.log` in production extension or CLI code
 
 ## Comments
 
 **When to Comment:**
-- Module-level JSDoc comments on every `.cjs` module explaining purpose
-- Function-level JSDoc on key exported functions
-- Inline comments for non-obvious logic (regex patterns, edge cases)
-- `// ─── Section Header ───` dividers in `core.cjs` for logical grouping
+- JSDoc-style block comment at top of every file: purpose, generated-by attribution
+- Inline comments for section headers using `// ─── Section Name ───` box-drawing separators in CJS
+- Comments explain "why" for non-obvious logic, especially regex patterns and path resolution rules
 
 **JSDoc/TSDoc:**
-- Used on extension entry point and public methods in `path-resolver.ts`
-- Used on module exports and key helpers in `gsd/bin/lib/*.cjs`
-- Not used for obvious getter/setter patterns
+- Used for public API functions in TypeScript extension files
+- Used for exported functions in CJS modules
+- `@param` and `@returns` tags in TypeScript; plain description in CJS
+
+**Attribution:**
+- Many files include `Generated by pi-gsd-maker.` in the file-level comment
 
 ## Function Design
 
-**Size:** Functions generally 10-80 lines. Largest: `cmdPhaseRemove()` ~150 lines (complex renumbering logic)
+**Size:**
+- CLI command handlers: 20-80 lines typical
+- Utility functions: 5-20 lines
+- Init compound commands: 50-120 lines (assemble complex context)
 
 **Parameters:**
-- CLI handlers: `(cwd, ...specific_args, raw)` pattern — `cwd` first, `raw` boolean last
-- Init commands: `(cwd, context_arg, raw)` — return comprehensive JSON context
-- Internal helpers: Minimal parameters, return structured objects
+- CLI command functions: `(cwd, ...specificArgs, raw)` pattern — `cwd` first, `raw` flag last
+- Extension handlers: `(args, ctx)` pattern matching Pi SDK conventions
+- Destructure objects at call sites, not in parameter lists
 
 **Return Values:**
-- CLI handlers: Call `output(result, raw)` and never return (output calls `process.exit(0)`)
-- Helpers: Return structured objects or `null` for not-found
-- Extension event handlers: Return event-specific response objects or `undefined`
+- CLI: Call `output(result, raw, rawValue)` to write JSON and exit — functions don't return
+- Extension: Return event modification objects (`{ systemPrompt: ... }`) or `undefined` for no-op
+- Tests: Use `passed++`/`failed++` counters, no return values
 
 ## Module Design
 
-**Exports (CommonJS):**
-- Each `gsd/bin/lib/*.cjs` exports an object with named functions: `module.exports = { cmdFn1, cmdFn2, helperFn }`
-- Prefix convention: `cmd*` for CLI-facing, no prefix for internal helpers
+**Extension (TypeScript):**
+- Default export for extension factory: `export default function (pi: ExtensionAPI)`
+- Named exports for reusable classes/functions: `export class GsdPathResolver`
+- Named exports for registration functions: `export function registerGsdCommands()`
 
-**Exports (TypeScript):**
-- `extensions/gsd/index.ts`: Default export function (Pi extension convention)
-- `extensions/gsd/commands.ts`: Named export `registerGsdCommands`
-- `extensions/gsd/path-resolver.ts`: Named export `GsdPathResolver` class
+**CLI (CommonJS):**
+- Each module exports an object of command functions: `module.exports = { cmdStateLoad, cmdStateGet, ... }`
+- Internal helpers are module-private (not exported)
+- `core.cjs` is the foundation: exports shared utilities consumed by all other modules
 
 **Barrel Files:**
 - Not used — each module imported directly by path
 
-## Output Protocol
+## CLI Output Convention
 
-**CLI tools output format:**
-- JSON mode (default): `output(result)` → `JSON.stringify` to stdout → `process.exit(0)`
-- Raw mode (`--raw`): `output(result, true, rawValue)` → plain string to stdout → `process.exit(0)`
-- Large output (>50KB): Write JSON to tmpfile → output `@file:/path` prefix to stdout
-- Errors: Always stderr → `process.exit(1)`
+**JSON Output Pattern:**
+- All CLI commands output JSON via `output(result, raw, rawValue)` in `core.cjs`
+- `--raw` flag: output a single raw string value (for shell scripting)
+- Large payloads (>50KB): Written to temp file, stdout gets `@file:/tmp/gsd-*.json` path
+- Error: stderr message + `process.exit(1)` — never partial JSON
+
+## Markdown-as-Code Conventions
+
+**Workflow Structure:**
+- `<purpose>` block at top: describes what the workflow does
+- `<process>` with `<step name="...">` blocks: sequential execution instructions
+- `<success_criteria>` at end: checklist for workflow completion
+- Embedded bash code blocks with `gsd-tools.cjs` calls
+
+**Agent Structure:**
+- YAML frontmatter: `name`, `description`, `tools`, `color`
+- `<role>` block: agent identity and purpose
+- `<process>` with steps: exploration → writing → confirmation
+- `<templates>` section: document templates to fill
+- `<critical_rules>` section: hard constraints
+
+**Command Structure:**
+- YAML frontmatter: `name`, `description`, `argument-hint`
+- `<execution_context>` block: references workflow file(s) via `@path`
+- `<context>` block: optional project state loading
+- Markdown body: user-visible instruction prompt
 
 ---
 
 *Convention analysis: 2026-03-05*
+*Update when patterns change*

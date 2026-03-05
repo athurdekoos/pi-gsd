@@ -4,82 +4,68 @@
 
 ## APIs & External Services
 
-**Pi Coding Agent (Host Runtime):**
-- Primary integration — pi-gtd IS an extension for the pi coding agent
-- SDK: `@mariozechner/pi-coding-agent` (imported in `extensions/gsd/index.ts`)
-- Contract: Extension factory function `export default function(pi: ExtensionAPI)` in `extensions/gsd/index.ts`
-- Events subscribed: `before_agent_start`, `tool_call`, `session_start`
-- APIs used: `pi.on()`, `pi.registerCommand()`, `pi.sendUserMessage()`
+**Web Search (Optional):**
+- Brave Search API - Domain research during `/gsd:research-phase` workflows
+  - Integration: HTTP via `gsd-tools.cjs websearch` command
+  - Auth: `BRAVE_API_KEY` environment variable (optional; research works without it)
+  - Rate limits: Configurable via `--limit N` flag
 
-**Brave Search API (Optional):**
-- Web search for research workflows
-- SDK/Client: Native `fetch()` in `gsd/bin/lib/commands.cjs:cmdWebsearch()`
-- Auth: `BRAVE_API_KEY` env var or `~/.gsd/brave_api_key` file
-- Endpoint: `https://api.search.brave.com/res/v1/web/search`
-- Detected during init by `gsd/bin/lib/init.cjs:cmdInitNewProject()` and `gsd/bin/lib/config.cjs:cmdConfigEnsureSection()`
-
-**Git:**
-- Version control integration for atomic commits
-- Client: `child_process.execSync('git ...')` via `gsd/bin/lib/core.cjs:execGit()`
-- Operations: `git add`, `git commit`, `git rev-parse`, `git cat-file`, `git check-ignore`, `git log`, `git status`
-- Used by: `gsd/bin/lib/commands.cjs:cmdCommit()`, `gsd/bin/lib/verify.cjs:cmdVerifyCommits()`, executor agents
+**LLM Provider:**
+- Claude API (Anthropic) - All agent reasoning (planning, execution, verification)
+  - Integration: Managed by Pi coding agent host runtime (not directly by pi-gsd)
+  - Auth: Handled by Pi; pi-gsd selects model via `resolve-model` command
+  - Models used: opus, sonnet, haiku (selected per agent type via model profiles)
 
 ## Data Storage
 
 **Databases:**
-- None — all state is file-based
+- None - All state is file-based
 
 **File Storage:**
 - Local filesystem only
-- Project state: `.planning/` directory tree
-- Key files: `STATE.md`, `ROADMAP.md`, `REQUIREMENTS.md`, `PROJECT.md`, `config.json`
-- Phase artifacts: `.planning/phases/NN-name/` (PLAN.md, SUMMARY.md, CONTEXT.md, RESEARCH.md, VERIFICATION.md)
-- Quick tasks: `.planning/quick/NNN-slug/`
-- Todos: `.planning/todos/pending/`, `.planning/todos/completed/`
-- Milestones: `.planning/milestones/`
-- Codebase map: `.planning/codebase/`
-- Debug sessions: `.planning/debug/`, `.planning/debug/resolved/`
+  - `.planning/` directory - All project state (PROJECT.md, STATE.md, ROADMAP.md, phases/, config.json)
+  - State managed via `gsd-tools.cjs` CRUD commands
+  - No cloud storage integration
 
 **Caching:**
-- None — all state is read from disk on each invocation
+- None - No in-memory or disk caching layer
 
 ## Authentication & Identity
 
 **Auth Provider:**
-- None — GSD has no authentication layer
-- Brave Search API key is the only secret, stored as env var or file
+- None - pi-gsd is a local extension with no user authentication
+  - Pi host handles any LLM API authentication
 
 ## Monitoring & Observability
 
 **Error Tracking:**
-- None — errors written to stderr via `gsd/bin/lib/core.cjs:error()`
+- None - Errors written to stderr via `process.stderr.write()`
 
 **Logs:**
-- stderr for extension load failures (`extensions/gsd/index.ts` graceful degradation)
+- stderr only - Extension writes `[pi-gsd]` prefixed messages to stderr on initialization failures
+- CLI tooling: stdout for JSON results, stderr for errors
 - No structured logging framework
 
 ## CI/CD & Deployment
 
 **Hosting:**
-- Distributed as npm package via `package.json` `"pi"` field
-- Installed into pi coding agent as an extension package
+- Local Pi coding agent installation
+  - Extension discovered via `package.json` → `pi.extensions` field
+  - No remote deployment
 
 **CI Pipeline:**
-- Tests run via `npx tsx tests/run-all.ts`
-- E2E tests gated behind `--e2e` flag
+- No GitHub Actions or CI/CD configured
+  - Tests run locally via `npx tsx tests/run-all.ts`
 
 ## Environment Configuration
 
-**Required env vars:**
-- None strictly required
+**Development:**
+- Required env vars: None (GSD_HOME auto-set by path resolver)
+- Optional env vars: `BRAVE_API_KEY` (web research)
+- No mock services needed
 
-**Optional env vars:**
-- `BRAVE_API_KEY` — Brave Search API key for research workflows
-- `GSD_HOME` — Auto-set by extension, should not be manually configured
-
-**Secrets location:**
-- `~/.gsd/brave_api_key` — Brave Search API key file (optional)
-- No other secrets managed by GSD itself
+**Production:**
+- Same as development - extension runs locally inside Pi
 
 ## Webhooks & Callbacks
 
@@ -87,29 +73,32 @@
 - None
 
 **Outgoing:**
-- Brave Search API calls (when configured) — `gsd/bin/lib/commands.cjs:cmdWebsearch()`
+- None
 
 ## Pi Extension Integration Points
 
-**Extension Registration (`extensions/gsd/index.ts`):**
-1. `GsdPathResolver` constructor sets `GSD_HOME` env var
-2. `registerGsdCommands()` registers all `/gsd:*` slash commands
-3. `before_agent_start` event injects GSD system prompt context when `.planning/` exists
-4. `tool_call` event rewrites `$GSD_HOME` in bash commands
-5. `session_start` event sets status indicator when `STATE.md` exists
+**Lifecycle Events Subscribed:**
+- `before_agent_start` - Injects GSD system prompt when `.planning/` exists
+- `tool_call` - Rewrites `$GSD_HOME` in bash commands at runtime
+- `session_start` - Sets "GSD ●" status indicator when STATE.md exists
 
-**Command Registration (`extensions/gsd/commands.ts`):**
-- Discovers `commands/gsd/*.md` files at load time
-- Parses YAML frontmatter for name/description
-- Re-reads `.md` at invocation time (supports hot-reload via `/reload`)
-- Transforms content via `GsdPathResolver.transform()` pipeline
-- Sends transformed content as user message via `pi.sendUserMessage()`
+**Commands Registered:**
+- 30+ `/gsd:*` slash commands discovered from `commands/gsd/*.md`
+- Bare `/gsd` command (alias for `/gsd:help`)
+- Commands re-read `.md` files at invocation time (hot-reload support)
 
-**Path Resolution (`extensions/gsd/path-resolver.ts`):**
-- 4-rule path rewrite: `@~/.claude/get-shit-done/`, `$HOME/.claude/get-shit-done/`, `~/.claude/get-shit-done/`, `$GSD_HOME/` → actual `gsdHome` path
-- `<execution_context>` block transformation: converts `@path` lines to Read tool instructions
-- `$ARGUMENTS` injection: replaces placeholder with user-provided command arguments
+**User Messages:**
+- `pi.sendUserMessage()` - Commands send transformed markdown as user messages to trigger LLM workflow execution
+
+## External Tool Dependencies
+
+**Git:**
+- Used by `gsd-tools.cjs commit` for atomic commits
+- Used by `gsd-tools.cjs` for branch operations (phase/milestone branching)
+- Shelled out via `child_process.execSync`
+- Must be available in PATH
 
 ---
 
 *Integration audit: 2026-03-05*
+*Update when adding/removing external services*

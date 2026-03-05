@@ -5,82 +5,75 @@
 ## Languages
 
 **Primary:**
-- TypeScript 5.x — Extension code (`extensions/gsd/`), test suite (`tests/`)
-- JavaScript (CommonJS) — Runtime CLI tooling (`gsd/bin/`)
-- Markdown — Agent definitions (`agents/`), command definitions (`commands/gsd/`), workflows (`gsd/workflows/`), templates (`gsd/templates/`), references (`gsd/references/`)
+- TypeScript 5.x - Extension layer (`extensions/gsd/*.ts`) and all test files (`tests/*.test.ts`)
+- CommonJS JavaScript - CLI tooling (`gsd/bin/gsd-tools.cjs`, `gsd/bin/lib/*.cjs`)
 
 **Secondary:**
-- YAML (embedded) — Frontmatter in `.md` files parsed by `gsd/bin/lib/frontmatter.cjs`
-- JSON — Configuration (`package.json`, `.planning/config.json`, template `gsd/templates/config.json`)
+- Markdown - Workflow engine, agent definitions, command definitions, templates, references (~80% of content by file count)
+- JSON - Configuration (`package.json`, `tsconfig.json`, `.planning/config.json`)
 
 ## Runtime
 
 **Environment:**
-- Node.js 20+ (uses `node:fs`, `node:path`, `node:child_process`, `node:assert`)
-- Pi coding agent (`@mariozechner/pi-coding-agent`) — host runtime that loads the extension
+- Node.js (ES2022 target) - All executable code
+- No browser runtime (CLI/extension tool only)
+- Pi coding agent host runtime - Extension loaded by Pi at startup
 
 **Package Manager:**
-- npm
-- Lockfile: not present (devDependencies only — `tsx`, `typescript`)
+- npm (implied by `package.json`, no `package-lock.json` observed)
+- Lockfile: Not present
 
 ## Frameworks
 
 **Core:**
-- Pi Extension SDK (`@mariozechner/pi-coding-agent`) — Extension API used by `extensions/gsd/index.ts`
-  - Events: `before_agent_start`, `tool_call`, `session_start`
-  - APIs: `pi.on()`, `pi.registerCommand()`, `pi.sendUserMessage()`
+- Pi Extension SDK (`@mariozechner/pi-coding-agent`) - Host runtime API for registering commands and lifecycle events
 
 **Testing:**
-- Node.js built-in `node:assert` — All test files
-- Custom test harness (`tests/harness/`) — mock API, lifecycle helpers, diagnostics
-- `tsx` 4.x — TypeScript execution for tests (no compilation step)
+- Custom test runner (`tests/run-all.ts`) - No jest/mocha/vitest
+- `node:assert` (strict mode) - Assertion library
+- `tsx` 4.x - TypeScript execution without build step
 
 **Build/Dev:**
-- TypeScript 5.x — Type checking only (`tsconfig.json` with `target: ES2022`, `module: ESNext`)
-- `tsx` — Direct `.ts` execution for tests
-- No bundler — Extension loaded via `jiti` by pi runtime (TypeScript runs directly)
+- TypeScript 5.x - Type checking and compilation (`tsconfig.json`)
+- `tsx` 4.x - Direct TypeScript execution for tests and development
 
 ## Key Dependencies
 
 **Critical:**
-- `@mariozechner/pi-coding-agent` — Host runtime providing `ExtensionAPI` type and event system. Extension entry point (`extensions/gsd/index.ts`) imports this. Not listed in `package.json` — provided by the pi runtime at load time.
+- `@mariozechner/pi-coding-agent` (peer) - Pi Extension SDK; provides `ExtensionAPI` type and runtime hooks
+- `tsx` ^4.0.0 (dev) - TypeScript execution for tests
 
 **Infrastructure:**
-- `tsx` ^4.0.0 (devDependency) — Run TypeScript tests without compilation
-- `typescript` ^5.0.0 (devDependency) — Type checking
-
-**Runtime (zero npm dependencies):**
-- `gsd/bin/gsd-tools.cjs` and all `gsd/bin/lib/*.cjs` use only Node.js built-ins (`fs`, `path`, `child_process`, `os`)
-- The extension code (`extensions/gsd/`) uses only Node.js built-ins (`fs`, `path`)
-- No external runtime dependencies — fully self-contained
+- Node.js built-ins only for CLI tooling (`fs`, `path`, `child_process`, `os`) - Zero external runtime dependencies (ADR-004)
 
 ## Configuration
 
 **Environment:**
-- `GSD_HOME` — Set by `GsdPathResolver` constructor in `extensions/gsd/path-resolver.ts` to `{packageRoot}/gsd/`
-- `BRAVE_API_KEY` (optional) — Enables web search via `gsd-tools.cjs websearch` command
-- `~/.gsd/brave_api_key` (optional) — Alternative file-based Brave Search key
-- `~/.gsd/defaults.json` (optional) — User-level default config for new projects
+- `GSD_HOME` - Set automatically by `GsdPathResolver` constructor at extension load time; points to `gsd/` directory
+- No `.env` files required
+- Optional: `BRAVE_API_KEY` for web research via `gsd-tools.cjs websearch`
 
 **Build:**
-- `tsconfig.json` — `target: ES2022`, `module: ESNext`, `moduleResolution: bundler`, `strict: true`
-- No build step required — TypeScript compiled on-the-fly by pi's `jiti` loader
+- `tsconfig.json` - ES2022 target, ESNext modules, bundler resolution, strict mode
+- `package.json` - Defines `pi.extensions` and `pi.agents` entry points for Pi discovery
 
-**Project-level config:**
-- `.planning/config.json` — Per-project GSD settings (model profile, workflow toggles, branching strategy, parallelization)
-- Created by `gsd/bin/lib/config.cjs:cmdConfigEnsureSection()` with defaults from `gsd/templates/config.json` merged with `~/.gsd/defaults.json`
+**Project-Level:**
+- `.planning/config.json` - Per-project GSD settings (model profile, commit behavior, branching strategy, feature flags)
+- Config cascade: hardcoded defaults → `~/.gsd/defaults.json` → `.planning/config.json`
 
 ## Platform Requirements
 
 **Development:**
-- Node.js 20+
-- Pi coding agent installed (`@mariozechner/pi-coding-agent`)
-- Git (for commit operations via `gsd-tools.cjs commit`)
+- Any platform with Node.js and Pi coding agent installed
+- `git` binary required for commit operations
+- No Docker or external services needed
 
 **Production:**
-- Installed as a Pi extension package via `package.json` `"pi"` field
-- No separate deployment — runs inside the pi coding agent process
+- Runs as a Pi coding agent extension (loaded via `package.json` → `pi.extensions`)
+- Requires Pi coding agent host (`@mariozechner/pi-coding-agent`)
+- No standalone deployment — embedded in the Pi process
 
 ---
 
 *Stack analysis: 2026-03-05*
+*Update after major dependency changes*

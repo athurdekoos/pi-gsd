@@ -40,8 +40,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 02-01: E2e test workspace setup and agent spawning (E2E-01, E2E-02)
-- [ ] 02-02: Artifact verification and cleanup (E2E-03, E2E-04)
+- [ ] 02-01: Create e2e test scaffolding with workspace setup and agent spawning tests (E2E-01, E2E-02)
+- [ ] 02-02: Add artifact verification tests and register in run-all.ts (E2E-03, E2E-04)
 
 ## Progress
 

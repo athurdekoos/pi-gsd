@@ -3,7 +3,65 @@
 > **Strategy:** Dedicated `/gsd:define-ac` command (Strategy 2 from `possible_ac_for_gsd.md`)  
 > **Goal:** Users define testable acceptance criteria before planning. The executor MUST verify these pass before declaring done.  
 > **Status:** Ready for implementation  
-> **Created:** 2026-03-05
+> **Created:** 2026-03-05  
+> **Principle:** AC is mandatory. Every phase goes through AC definition before planning. No skip, no bypass.
+
+---
+
+## What Are Acceptance Criteria? (For the Human at the Keyboard)
+
+Before diving into the implementation, here's what AC means for **you** — the person using GSD.
+
+### The Problem AC Solves
+
+Without acceptance criteria, this happens:
+1. You say "build me a task manager"
+2. The AI builds *something*
+3. You look at it and say "that's not what I meant"
+
+The AI decided what "done" looks like. You didn't. AC flips that.
+
+### What AC Actually Is
+
+**Acceptance criteria are your finish line.** They're concrete, testable statements that say: *"I will consider this phase done when these specific things are true."*
+
+They use a simple format:
+- **GIVEN** — the starting condition
+- **WHEN** — what happens
+- **THEN** — what you expect to see
+
+**Example:**
+> GIVEN I'm logged in, WHEN I click "New Task" and type a title, THEN a task appears in my list with status "todo"
+
+That's it. No jargon. Just: "here's what I expect to happen."
+
+### Why AC Is Mandatory in GSD
+
+AC is not optional. Every phase requires it. Here's why:
+
+1. **You define "done", not the AI.** The AI is good at building. It's bad at reading your mind. AC is how you tell it what success looks like.
+
+2. **It's the contract.** The planner maps your AC to specific tasks. The executor verifies your AC after building. The verifier checks your AC as the source of truth. Without AC, all of those agents are guessing.
+
+3. **It protects you from drift.** Phase by phase, without a clear finish line, the project can drift from what you actually wanted. AC anchors every phase to your intent.
+
+4. **It catches problems early.** When you write AC, you're forced to think about what you actually care about. "Tasks should work" isn't an AC. "Tasks persist after page refresh" is. That specificity catches ambiguity before any code is written.
+
+### What Happens During `/gsd:define-ac`
+
+1. The AI reads your project context and proposes 5-10 acceptance criteria
+2. You review each one — edit the wording, change the priority, add your own, remove ones you don't care about
+3. You organize them into three tiers:
+   - **Must Pass** — The phase fails without these. Non-negotiable.
+   - **Should Pass** — Important but won't block delivery. Logged as warnings if they fail.
+   - **Nice to Have** — Polish. Checked and logged, never blocks.
+4. The approved AC is saved and becomes the contract for everything downstream
+
+**You are always in control.** The AI proposes, you decide. Every criterion is yours.
+
+### The 30-Second Version
+
+> AC = your definition of "done", written before planning starts, enforced during execution, verified at the end. You write it. The AI follows it.
 
 ---
 
@@ -36,14 +94,18 @@ User defines AC ──► AC.md (artifact) ──► Planner reads AC ──► 
 
 ### Workflow Position
 
+AC is a **mandatory gate**. Planning cannot proceed without it.
+
 ```
 /gsd:discuss-phase 1    ← decisions (CONTEXT.md)
          │
          ▼
-/gsd:define-ac 1         ← acceptance criteria (AC.md)   ◄── NEW
+/gsd:define-ac 1         ← acceptance criteria (AC.md)   ◄── REQUIRED
          │
-         ▼
-/gsd:plan-phase 1        ← plans (PLAN.md files) — hard gate: requires AC.md
+         ▼ ════════════════════════════════════════════
+         ║  AC GATE — plan-phase BLOCKS without AC.md  ║
+         ▼ ════════════════════════════════════════════
+/gsd:plan-phase 1        ← plans (PLAN.md files) — HARD GATE: requires AC.md
          │
          ▼
 /gsd:execute-phase 1     ← execution — AC verify commands enforced per plan
@@ -463,7 +525,10 @@ roadmap_exists, requirements_path, state_path.
 
 If phase_found is false → Error: "Phase X not found. Use /gsd:progress."
 If has_context is false → Warn: "No CONTEXT.md found. Run /gsd:discuss-phase first for
-  better AC. Continue anyway?" (Yes/No)
+  better AC — your acceptance criteria will be more precise with implementation decisions
+  already captured. Continue anyway?" (Yes/No)
+  Note: This is a warning, not a block. AC can be defined without CONTEXT.md, but the
+  criteria may be less specific. The AC gate on plan-phase is the hard gate.
 </step>
 
 <step name="check_existing_ac">
@@ -498,6 +563,16 @@ Display banner:
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    GSD ► DEFINING ACCEPTANCE CRITERIA
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Acceptance criteria are YOUR definition of "done" for this phase.
+  They're concrete, testable statements — not vague goals.
+
+  You'll review each one and decide:
+  • Must Pass — the phase isn't done without this
+  • Should Pass — important, but won't block delivery
+  • Nice to Have — polish, logged but never blocks
+
+  The AI proposes. You decide. Every criterion is yours.
 
 Generate 5-10 acceptance criteria from loaded context:
 - Derive Must Pass from explicit requirements (REQ-IDs) and ROADMAP success criteria
@@ -658,33 +733,39 @@ If not: show manual next steps (above).
 **Location:** After Step 4 ("Load CONTEXT.md"), before Step 5 ("Handle Research"). Insert a new Step 4.5.
 
 **Action:**  
-Add a new step that checks for AC.md and gates planning:
+Add a new step that checks for AC.md and **hard-gates** planning:
 
 ```markdown
-## 4.5. Check Acceptance Criteria
+## 4.5. Check Acceptance Criteria (HARD GATE)
 
 Check `has_ac` and `ac_path` from init JSON.
 
 **If `has_ac` is true:**
-Display: `Using acceptance criteria from: ${ac_path}`
+Display: `✓ Using acceptance criteria from: ${ac_path}`
 
 **If `has_ac` is false:**
 
-Use AskUserQuestion:
-- header: "No AC"
-- question: "No acceptance criteria found for Phase {X}. Plans will use AI-derived
-  must_haves only — your definition of 'done' won't be explicitly enforced.
-  Define AC first or continue without?"
-- options:
-  - "Define AC first (Recommended)" — Run /gsd:define-ac to set your finish line
-  - "Continue without AC" — Plan using AI-derived criteria only
-  - "Skip AC for this project" — Never ask again (sets config flag)
+Display:
 
-If "Define AC first": Display `/gsd:define-ac {X}` and exit workflow.
-If "Continue without AC": Proceed to step 5.
-If "Skip AC for this project":
-  node gsd-tools.cjs config-set workflow.skip_ac true
-  Proceed to step 5.
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   GSD ► AC REQUIRED
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Phase {X} has no acceptance criteria.
+
+  Acceptance criteria define YOUR finish line — what "done" means to you,
+  not what the AI thinks "done" means. Every phase requires AC before
+  planning can begin.
+
+  Run this first:
+
+    /gsd:define-ac {X}
+
+  Then come back to /gsd:plan-phase {X}.
+
+**Exit the workflow.** Do not proceed to planning without AC.
+
+There is no skip option. AC is mandatory.
 ```
 
 **Also modify** the planner spawn prompt (Step 8) to include AC context:
@@ -700,7 +781,7 @@ And add to the quality_gate:
 - [ ] Every Must Pass AC-ID mapped to at least one task's <done> criteria
 ```
 
-**Verify:** Run `/gsd:plan-phase 1` without AC.md → see the gate prompt. With AC.md → see "Using acceptance criteria from:" message.
+**Verify:** Run `/gsd:plan-phase 1` without AC.md → workflow **blocks** and directs user to `/gsd:define-ac 1`. With AC.md → see "✓ Using acceptance criteria from:" message.
 
 **Done:** Plan-phase gates on AC.md existence and passes AC to planner.
 
@@ -730,7 +811,8 @@ If `<files_to_read>` includes an AC.md file, you MUST map acceptance criteria to
 
 3. **Nice to Have ACs** — Map if naturally fits a task. Don't force it.
 
-4. **Plan frontmatter** — Add `acceptance_criteria` field listing AC-IDs this plan addresses:
+4. **Plan frontmatter** — Add `acceptance_criteria` field listing AC-IDs this plan addresses
+   (since AC is mandatory, this field should always be populated):
    ```yaml
    acceptance_criteria: [AC-01, AC-02, AC-05]
    ```
@@ -934,12 +1016,14 @@ If AC.md exists:
   6. Skip Options A, B, C (AC.md overrides all AI-derived criteria)
   7. Display: "Using user-defined acceptance criteria from AC.md ({N} Must Pass, {M} Should Pass)"
 
-If AC.md does not exist: Fall through to existing Option A (PLAN frontmatter must_haves).
+If AC.md does not exist (legacy phases only — AC is mandatory for new phases):
+  Fall through to existing Option A (PLAN frontmatter must_haves).
+  Display warning: "⚠ No AC.md found. This phase may predate mandatory AC. Using AI-derived criteria as fallback."
 ```
 
 **Verify:** With AC.md present, verifier reports "Using user-defined acceptance criteria."
 
-**Done:** Verifier uses AC.md as primary source, falling back to AI-derived criteria only when no AC exists.
+**Done:** Verifier uses AC.md as the primary and expected source of truth. Since AC is mandatory, AC.md should always exist for any phase that has been through planning. AI-derived criteria serve only as a safety net for edge cases (e.g., legacy phases from before AC was implemented).
 
 ### Task 6.2: Add AC-awareness to gsd-verifier agent
 
@@ -957,11 +1041,14 @@ If the phase has an AC.md file, it is the **primary source of truth** for verifi
 AC.md contains user-approved criteria that override AI-derived must_haves.
 
 **Verification hierarchy:**
-1. AC.md Must Pass criteria (user-defined — highest authority)
+1. AC.md Must Pass criteria (user-defined — highest authority, always expected)
 2. AC.md Should Pass criteria (user-defined)
-3. PLAN.md must_haves (AI-derived — only used if no AC.md exists)
-4. ROADMAP.md success criteria (fallback)
+3. PLAN.md must_haves (AI-derived — legacy fallback only, for phases predating mandatory AC)
+4. ROADMAP.md success criteria (legacy fallback)
 5. Phase goal derivation (last resort)
+
+Since AC is mandatory, levels 3-5 should only apply to legacy phases that were created
+before AC enforcement was implemented.
 
 **When AC.md exists:**
 - Use Must Pass criteria as the truths to verify
@@ -1011,8 +1098,9 @@ If AC.md exists:
   4. Skip SUMMARY.md extraction entirely — AC.md is the test list
   5. Display: "Testing against user-defined acceptance criteria ({N} tests)"
 
-If AC.md does not exist:
+If AC.md does not exist (legacy phases only — AC is mandatory for new phases):
   Fall through to existing SUMMARY.md extraction logic.
+  Display warning: "⚠ No AC.md found. Using SUMMARY.md as fallback test source."
 ```
 
 **Verify:** Run `/gsd:verify-work` with AC.md present → see "Testing against user-defined acceptance criteria."
@@ -1043,22 +1131,22 @@ Skill(skill="gsd:plan-phase", args="${PHASE} --auto")
 Skill(skill="gsd:define-ac", args="${PHASE} --auto")
 ```
 
-**Also update** the interactive next-steps (in `confirm_creation` step) to recommend define-ac:
+**Also update** the interactive next-steps (in `confirm_creation` step) to direct the user to define-ac:
 
 ```markdown
 ## ▶ Next Up
 
 **Phase ${PHASE}: [Name]** — [Goal from ROADMAP.md]
 
-`/gsd:define-ac ${PHASE}` — define what "done" means
+`/gsd:define-ac ${PHASE}` — define what "done" means for this phase
 
 <sub>`/clear` first → fresh context window</sub>
 
----
-
-**Also available:**
-- `/gsd:plan-phase ${PHASE}` — skip AC, plan directly (AI-defined criteria)
+Acceptance criteria are required before planning. This is where you
+define the finish line — what success looks like to you.
 ```
+
+Note: There is no "skip AC, plan directly" option. AC is mandatory.
 
 **Verify:** In auto-mode, discuss-phase chains to define-ac instead of plan-phase.
 
@@ -1095,11 +1183,12 @@ If not auto: Show manual next steps.
 ```
 
 **Important for auto-mode:** When `--auto` is set, the define-ac workflow should:
+- Still generate AC.md — auto-mode never skips AC creation
 - Auto-approve all LLM-generated AC without per-tier review loops
 - Skip test stub generation
 - Commit and chain immediately
 
-This matches the pattern in `new-project.md` where auto mode skips approval gates.
+AC is mandatory even in auto-mode. The `--auto` flag accelerates the process by skipping interactive review, but it never bypasses AC itself. This matches the principle that AC is the user's contract — even if the LLM proposes and auto-approves, the AC still exists and gates planning.
 
 **Verify:** Full auto-advance chain: discuss → define-ac → plan → execute runs end-to-end.
 
@@ -1145,7 +1234,7 @@ Plan 4 (planner integration)
 | `gsd/templates/ac.md` | 2.1 | AC.md template with schema, examples, guidelines |
 | `commands/gsd/define-ac.md` | 2.2 | `/gsd:define-ac` command entry point |
 | `gsd/workflows/define-ac.md` | 3.1 | Full workflow for AC definition |
-| `docs/flows/define-ac.md` | — | (Optional) Step-by-step documentation like the discuss-phase doc |
+| `docs/flows/define-ac.md` | — | Step-by-step documentation like the discuss-phase doc (required — AC is mandatory, users need clear documentation) |
 
 ### Modified Files (9)
 
@@ -1185,7 +1274,7 @@ After all plans are implemented, verify the complete flow:
 - [ ] AC.md is written with correct frontmatter and committed to git
 
 ### Planner Integration
-- [ ] `/gsd:plan-phase 1` without AC.md shows the gate prompt (recommends define-ac)
+- [ ] `/gsd:plan-phase 1` without AC.md **blocks** and directs user to `/gsd:define-ac 1`
 - [ ] `/gsd:plan-phase 1` with AC.md passes AC to planner
 - [ ] Planner creates plans with `acceptance_criteria` frontmatter field
 - [ ] Every Must Pass AC-ID appears in at least one task's `<done>` criteria
@@ -1201,18 +1290,18 @@ After all plans are implemented, verify the complete flow:
 
 ### Verifier & UAT
 - [ ] Verifier uses AC.md as primary source when it exists
-- [ ] Verifier falls back to must_haves/success_criteria when no AC.md
+- [ ] Verifier falls back to must_haves/success_criteria only for legacy phases (AC.md should always exist for new phases)
 - [ ] VERIFICATION.md contains per-AC-ID results
 - [ ] `/gsd:verify-work` derives test list from AC.md when it exists
-- [ ] `/gsd:verify-work` falls back to SUMMARY.md extraction when no AC.md
+- [ ] `/gsd:verify-work` falls back to SUMMARY.md extraction only for legacy phases (AC.md should always exist for new phases)
 
 ### Auto-Advance
 - [ ] discuss-phase → define-ac → plan-phase → execute-phase chain works in auto mode
-- [ ] define-ac auto-mode skips per-tier review loops
+- [ ] define-ac auto-mode generates AC.md and skips per-tier review loops (AC is still created)
 - [ ] Interactive mode discuss-phase shows `/gsd:define-ac` as next step
 
-### Graceful Degradation
-- [ ] Projects without AC.md work exactly as before (no regressions)
-- [ ] `/gsd:plan-phase --skip-ac` bypasses the AC gate
-- [ ] `config workflow.skip_ac true` permanently disables AC gate
-- [ ] Old projects with existing phases (no AC.md) plan and execute normally
+### AC Enforcement
+- [ ] `/gsd:plan-phase` without AC.md **blocks** and directs user to `/gsd:define-ac`
+- [ ] There is no `--skip-ac` flag — AC is mandatory for every phase
+- [ ] There is no `workflow.skip_ac` config option — AC cannot be disabled
+- [ ] Old projects with existing phases that lack AC.md are prompted to define AC before further planning
